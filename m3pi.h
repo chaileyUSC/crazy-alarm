@@ -37,6 +37,7 @@
 #define PI_CALIBRATE 0xB4
 #define LINE_SENSORS_RESET_CALIBRATION 0xB5
 #define SEND_LINE_POSITION 0xB6
+#define DO_LCD_GOTO_XY 0xB9
 #define AUTO_CALIBRATE 0xBA
 #define SET_PID 0xBB
 #define STOP_PID 0xBC
@@ -44,6 +45,9 @@
 #define M1_BACKWARD 0xC2
 #define M2_FORWARD 0xC5
 #define M2_BACKWARD 0xC6
+#define DO_PLAY 0xB3
+#define DO_CLEAR 0xB7
+
 
 #define SEND_M1_ENCODER_COUNT 0xD1
 #define SEND_M2_ENCODER_COUNT 0xD2
@@ -203,6 +207,14 @@ public:
      */
     void leds(int val);
 
+
+        /** Locate the cursor on the 8x2 LCD
+     *
+     * @param x The horizontal position, from 0 to 7
+     * @param y The vertical position, from 0 to 1
+     */
+    void locate(int x, int y);
+
     /** Send a character directly to the 3pi serial interface
      * @param c The character to send to the 3pi
      */
@@ -217,6 +229,18 @@ public:
      * @param text A pointer to a char array
      * @param int The character to send to the 3pi
      */
+
+    // Richard Added
+ 
+     int playBuzzer(char* tune);
+
+
+     /** Clear the LCD
+     *
+     */
+    void cls(void);
+
+
     int print(char* text, int length);
 
     /** EE250L: YOU CANNOT USE THE FUCNCTIONS BELOW WITHOUT THE SPECIAL ENCODER

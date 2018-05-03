@@ -55,7 +55,6 @@
 #include "MailMsg.h"
 #include "LEDThread.h"
 #include "PrintThread.h"
-
 extern "C" void mbed_reset();
 
 /* connect this pin to both the CH_PD (aka EN) & RST pins on the ESP8266 just in case */
@@ -68,7 +67,12 @@ extern "C" void mbed_reset();
 /* turn on easy-connect debug prints */
 #define EASY_CONNECT_LOGGING    true
 
+DigitalIn button(p21);
+AnalogIn ultrasound(p20);
 DigitalOut wifiHwResetPin(WIFI_HW_RESET_PIN);
+
+Serial pc(USBTX, USBRX);
+
 
 /** Initialize the m3pi for robot movements. There is an atmega328p MCU in the
  *  3pi robot base. It's UART lines are connected to the LPC1768's p9 and p10.
@@ -161,7 +165,7 @@ void messageArrived(MQTT::MessageData& md)
             /* put the piece of mail into the target thread's mailbox */
             getPrintThreadMailbox()->put(msg);
             break;
-        case FWD_TO_LED_THR:
+        case 'A':
             printf("fwding to led thread\n");
             msg = getLEDThreadMailbox()->alloc();
             if (!msg) {
@@ -179,6 +183,106 @@ void messageArrived(MQTT::MessageData& md)
     }
 }
 
+
+
+void walk(int walkType) //MAKES THE ROBOT WALK IN ITS DESIRED PATH
+{
+    if (walkType == 0) //NORMAL PATH 
+    {
+        m3pi.forward(0.5);
+        wait(1);
+        m3pi.left(1); 
+        wait(1); 
+        m3pi.forward(0.5);
+        wait(1);
+
+
+        m3pi.stop();  
+    }
+    else if (walkType == 1) //CRAZY PATH 
+    {
+        m3pi.forward(3);
+        wait(1);
+        m3pi.forward(3);
+        wait(2);
+        m3pi.left(3.6);
+        wait(1.4);
+        m3pi.right(2.4);
+        wait(1.5);
+        m3pi.left(1.3);
+        wait(2.3); 
+        m3pi.backward(1.5);
+        wait(2.7); 
+        m3pi.stop(); 
+
+    }
+
+}
+
+void playAlarm(int alarmType) //PLAYS A PARTICULAR ALARM FOR THE ROBOT 
+{
+    if (alarmType == 0) //NORMAL ALARM 
+    {
+        char* tune = "c32 >c32";
+        m3pi.playBuzzer(tune); 
+    }
+    else if (alarmType == 1) //CRAZY ALARM 
+    {
+        char* tune = "a b c d e d c b";
+        m3pi.playBuzzer(tune);
+    }
+           
+}
+
+void LEDPattern(int ledType) //DISPLAYS A PARTICULAR LED PATTERN 
+{
+
+    if (ledType == 0) //NORMAL LED PATTERN 
+    {  
+        m3pi.leds(2);
+        wait(0.1); 
+        m3pi.leds(4);
+        wait(0.1);
+        m3pi.leds(8);
+        wait(0.1);
+        m3pi.leds(16);
+        wait(0.1);
+        m3pi.leds(32);
+        wait(0.1);
+        m3pi.leds(64);
+        wait(0.1);
+        m3pi.leds(128);
+        wait(0.1);
+        m3pi.leds(256);
+        wait(0.1);  
+    }
+    else if (ledType == 1) //CRAZY LED PATTERN 
+    {
+        m3pi.leds(10);
+        wait(0.1);
+        m3pi.leds(112);
+        wait(0.01);
+        m3pi.leds(124);
+        wait(0.01);
+    }      
+    
+    
+}
+    
+
+
+void alarm(int alarmType, int pathType, int ledType)
+{
+    m3pi.printf("ALARM"); 
+    LEDPattern(ledType);
+    playAlarm(alarmType);
+    walk(pathType);
+}
+
+
+
+
+
 int main()
 {
     /* Uncomment this to see how the m3pi moves. This sequence of functions
@@ -186,22 +290,8 @@ int main()
        at a speed of 25 (speed can be between -127 to 127) for 100 ms. Use
        functions like this in your program to move your m3pi when you get 
        MQTT messages! */
-    // movement('w', 25, 100);
-    // movement('w', 25, 100);
-    // movement('w', 25, 100);
-    // movement('w', 25, 100);
-    // movement('a', 25, 100);
-    // movement('a', 25, 100);
-    // movement('a', 25, 100);
-    // movement('a', 25, 100);
-    // movement('d', 25, 100);
-    // movement('d', 25, 100);
-    // movement('d', 25, 100);
-    // movement('d', 25, 100);
-    // movement('s', 25, 100);
-    // movement('s', 25, 100);
-    // movement('s', 25, 100);
-    // movement('s', 25, 100);
+     movement('w', 25, 100);
+
 
     wait(1); //delay startup 
     printf("Resetting ESP8266 Hardware...\n");
@@ -258,7 +348,7 @@ int main()
        PrintThread files to understand how these threads work.*/
     Thread ledThr;
     Thread printThr;
-
+    int elapsedTime = 0; 
     /* Here, we pass in a pointer to the MQTT client so the LED thread can 
        client.publish() messages */
     ledThr.start(callback(LEDThread, (void *)&client));
@@ -273,6 +363,7 @@ int main()
      have MQTTAsync, but some effort is needed to adapt mbed OS libraries to
      be used by the MQTTAsync library. Please do NOT do anything else in this
      thread. Let it serve as your background MQTT thread. */
+    int state = 0; 
     while(1) {
         Thread::wait(1000);
         printf("main: yielding...\n", client.isConnected());
@@ -280,6 +371,40 @@ int main()
         if(!client.isConnected())
             mbed_reset(); //connection lost! software reset
 
+        if (state == 0)
+        {
+            if (getDurationTime() != -1)
+            {
+                if (getAlarmType() == -1 || getPathType() == -1 || getLEDType() == -1)
+                    printf("NEED TO SET EITHER ALARMTYPE, PATHTYPE, OR LEDTYPE"); 
+                else if (getAlarmType() != -1 && getPathType() == -1 && getLEDType() == -1)
+                {
+                    elapsedTime = getDurationTime(); 
+                    state = 1; 
+                }
+            }
+        }
+        else if (state == 1)
+        {
+            for (int i  = 0; i < elapsedTime; i++)
+            {
+                wait(1);
+            } 
+            state = 2; 
+        }
+        else if (state == 2)
+        {
+            bool alarmBroken = false;
+            while (!alarmBroken)
+            {
+                alarm(getAlarmType(), getPathType(), getLEDType()); 
+                if (button.read() == 1 || ultrasound*5 < 10)
+                {
+                    alarmBroken = true;
+                    state = 0; 
+                }
+            }
+        }
         /* yield() needs to be called at least once per keepAliveInterval. */
         client.yield(1000);
     }
