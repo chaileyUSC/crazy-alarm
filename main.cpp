@@ -71,7 +71,7 @@ DigitalIn button(p21);
 AnalogIn ultrasound(p20);
 DigitalOut wifiHwResetPin(WIFI_HW_RESET_PIN);
 
-Serial pc(USBTX, USBRX);
+//Serial pc(USBTX, USBRX);
 
 
 /** Initialize the m3pi for robot movements. There is an atmega328p MCU in the
@@ -86,7 +86,7 @@ m3pi m3pi(p23, p9, p10);
  */
 Mutex mqttMtx;
 
-static char *topic = "m3pi-mqtt-ee250";
+static char *topic = "anrg-pi4/robot";
 
 /**
  * @brief      controls movement of the 3pi
@@ -165,7 +165,7 @@ void messageArrived(MQTT::MessageData& md)
             /* put the piece of mail into the target thread's mailbox */
             getPrintThreadMailbox()->put(msg);
             break;
-        case 'A':
+        case FWD_TO_LED_THR:
             printf("fwding to led thread\n");
             msg = getLEDThreadMailbox()->alloc();
             if (!msg) {
@@ -176,6 +176,17 @@ void messageArrived(MQTT::MessageData& md)
             msg->length = message.payloadlen;
             getLEDThreadMailbox()->put(msg);
             break;
+        case 'A':
+            printf("fwding to led thread\n");
+            msg = getLEDThreadMailbox()->alloc();
+            if (!msg) {
+                printf("led thread mailbox full!\n");
+                break;
+            }
+            memcpy(msg->content, message.payload, message.payloadlen);
+            msg->length = message.payloadlen;
+            getLEDThreadMailbox()->put(msg);
+            break;       
         default:
             /* do nothing */
             printf("Unknown MQTT message\n");
@@ -217,6 +228,13 @@ void walk(int walkType) //MAKES THE ROBOT WALK IN ITS DESIRED PATH
 
     }
 
+}
+
+void go(int walkType)
+{
+    walk(walkType);
+    if (ultrasound*5 < 10)
+        m3pi.left(0.5);
 }
 
 void playAlarm(int alarmType) //PLAYS A PARTICULAR ALARM FOR THE ROBOT 
@@ -276,7 +294,7 @@ void alarm(int alarmType, int pathType, int ledType)
     m3pi.printf("ALARM"); 
     LEDPattern(ledType);
     playAlarm(alarmType);
-    walk(pathType);
+    go(pathType);
 }
 
 
@@ -371,40 +389,49 @@ int main()
         if(!client.isConnected())
             mbed_reset(); //connection lost! software reset
 
-        if (state == 0)
-        {
-            if (getDurationTime() != -1)
-            {
-                if (getAlarmType() == -1 || getPathType() == -1 || getLEDType() == -1)
-                    printf("NEED TO SET EITHER ALARMTYPE, PATHTYPE, OR LEDTYPE"); 
-                else if (getAlarmType() != -1 && getPathType() == -1 && getLEDType() == -1)
-                {
-                    elapsedTime = getDurationTime(); 
-                    state = 1; 
-                }
-            }
-        }
-        else if (state == 1)
-        {
-            for (int i  = 0; i < elapsedTime; i++)
-            {
-                wait(1);
-            } 
-            state = 2; 
-        }
-        else if (state == 2)
-        {
-            bool alarmBroken = false;
-            while (!alarmBroken)
-            {
-                alarm(getAlarmType(), getPathType(), getLEDType()); 
-                if (button.read() == 1 || ultrasound*5 < 10)
-                {
-                    alarmBroken = true;
-                    state = 0; 
-                }
-            }
-        }
+        // if (state == 0)
+        // {
+        //     if (getDurationTime() != -1)
+        //     {
+        //         if (getAlarmType() == -1 || getPathType() == -1 || getLEDType() == -1)
+        //         {
+        //             printf("NEED TO SET THE FOLLOWING:");
+        //             if (getAlarmType() == -1)
+        //                 printf("AlarmType");
+        //             if (getPathType() == -1)
+        //                 printf("PathType");
+        //             if (getLEDType() == -1)
+        //                 printf("LEDType"); 
+        //         }
+        //         else if (getAlarmType() != -1 && getPathType() == -1 && getLEDType() == -1)
+        //         {
+        //             elapsedTime = getDurationTime(); 
+        //             state = 1; 
+        //         }
+        //     }
+        // }
+
+        // else if (state == 1)
+        // {
+        //     for (int i  = 0; i < elapsedTime; i++)
+        //     {
+        //         wait(1);
+        //     } 
+        //     state = 2; 
+        // }
+        // else if (state == 2)
+        // {
+        //     bool alarmBroken = false;
+        //     while (!alarmBroken)
+        //     {
+        //         alarm(getAlarmType(), getPathType(), getLEDType()); 
+        //         if (button.read() == 1)
+        //         {
+        //             alarmBroken = true;
+        //             state = 0; 
+        //         }
+        //     }
+        // }
         /* yield() needs to be called at least once per keepAliveInterval. */
         client.yield(1000);
     }

@@ -115,12 +115,15 @@ void LEDThread(void *args)
                     break;
                 case 'a':
                     alarmType = msg->content[2]; 
+                    printf("ALARM TYPE SET");
                     break;
                 case 'p':
                     pathType = msg->content[2]; 
+                    printf("PATH TYPE SET"); 
                     break;
                 case 'l':
                     LEDType = msg->content[2];
+                    printf("LED TYPE SET");
                     break;
                 case 't':
                     timeDuration = msg->content[2]; 
