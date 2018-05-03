@@ -49,11 +49,20 @@
 
 #include "MQTTClient.h"
 
+
+
 Mail<MailMsg, LEDTHREAD_MAILBOX_SIZE> LEDMailbox;
 
 static DigitalOut led2(LED2);
 
 static const char *topic = "m3pi-mqtt-ee250/led-thread";
+
+int alarmType = -1; 
+int pathType = -1; 
+int LEDType = -1;  
+int timeDuration = -1; 
+
+
 
 void LEDThread(void *args) 
 {
@@ -62,7 +71,6 @@ void LEDThread(void *args)
     MQTT::Message message;
     osEvent evt;
     char pub_buf[16];
-
 
     while(1) {
 
@@ -105,10 +113,24 @@ void LEDThread(void *args)
                     }
                     led2 = 0;
                     break;
+                case 'a':
+                    alarmType = msg->content[2]; 
+                    break;
+                case 'p':
+                    pathType = msg->content[2]; 
+                    break;
+                case 'l':
+                    LEDType = msg->content[2];
+                    break;
+                case 't':
+                    timeDuration = msg->content[2]; 
+                    break; 
                 default:
                     printf("LEDThread: invalid message\n");
                     break;
+
             }            
+
 
             LEDMailbox.free(msg);
         }
@@ -122,4 +144,22 @@ Mail<MailMsg, LEDTHREAD_MAILBOX_SIZE> *getLEDThreadMailbox()
     return &LEDMailbox;
 }
 
+int getLEDType()
+{
+    return LEDType; 
+}
 
+int getAlarmType()
+{
+    return alarmType; 
+}
+
+int getPathType()
+{
+    return pathType;
+}
+
+int getDurationTime()
+{
+    return 1; 
+}

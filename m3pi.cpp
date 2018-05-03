@@ -152,11 +152,31 @@ float m3pi::pot_voltage(void) {
     return(volt);
 }
 
+void m3pi::locate(int x, int y) {
+    _ser.putc(DO_LCD_GOTO_XY);
+    _ser.putc(x);
+    _ser.putc(y);
+}
 
 void m3pi::leds(int val) {
 
     BusOut _leds(p20,p19,p18,p17,p16,p15,p14,p13);
     _leds = val;
+}
+
+// Richard Added
+ 
+int m3pi::playBuzzer (char* tune) {
+    _ser.putc(DO_PLAY);  
+    _ser.putc(strlen(tune));       
+    for (int i = 0 ; i < strlen(tune) ; i++) {
+        _ser.putc(tune[i]); 
+    }
+    return(0);
+}
+ 
+void m3pi::cls(void) {
+    _ser.putc(DO_CLEAR);
 }
 
 

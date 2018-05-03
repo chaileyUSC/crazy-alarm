@@ -16,10 +16,10 @@
             "value": true
         },
         "wifi-ssid": {
-            "value": "\"your-wifi-ssid\""
+            "value": "\"USC Guest Wireless\""
         },
         "wifi-password": {
-            "value": "\"your-wifi-password\""
+            "value": "\"\""
         }
     },
     "target_overrides": {

@@ -22,7 +22,14 @@ enum {
 enum {
     LED_THR_PUBLISH_MSG,
     LED_ON_ONE_SEC,
-    LED_BLINK_FAST
+    LED_BLINK_FAST,
+    ALARM_SIMPLE,
+    ALARM_CRAZY,
+    PATH_SIMPLE,
+    PATH_CRAZY,
+    LED_SIMPLE,
+    LED_CRAZY,
+    GET_TIME
 };
 
 /**
