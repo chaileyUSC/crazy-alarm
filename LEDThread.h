@@ -64,13 +64,9 @@ void LEDThread(void *args);
  */
 Mail<MailMsg, LEDTHREAD_MAILBOX_SIZE> *getLEDThreadMailbox();
 
-
-int getLEDType(); 
-
-int getAlarmType();
-
-int getPathType(); 
-
-
-int getDurationTime(); 
+void walk(int walkType);
+void go(int walkType);
+void playAlarm(int alarmType);
+void LEDPattern(int ledType);
+void alarm(int alarmType, int pathType, int ledType);
 #endif /* _LEDTHREAD_H_ */

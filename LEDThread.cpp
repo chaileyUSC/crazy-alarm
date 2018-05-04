@@ -48,19 +48,127 @@
 #include "MQTTNetwork.h"
 
 #include "MQTTClient.h"
-
+#include "mbed.h"
+#include "m3pi.h"
 
 
 Mail<MailMsg, LEDTHREAD_MAILBOX_SIZE> LEDMailbox;
 
 static DigitalOut led2(LED2);
+AnalogIn ultrasound(p20);
 
-static const char *topic = "m3pi-mqtt-ee250/led-thread";
+
+m3pi m3pi(p23, p9, p10);
+
+static const char *topic = "anrg-pi4/robot";
 
 int alarmType = -1; 
 int pathType = -1; 
 int LEDType = -1;  
 int timeDuration = -1; 
+
+
+void walk(int walkType) //MAKES THE ROBOT WALK IN ITS DESIRED PATH
+{
+    if (walkType == 0) //NORMAL PATH 
+    {
+        m3pi.forward(0.5);
+        wait(1);
+        m3pi.left(1); 
+        wait(1); 
+        m3pi.forward(0.5);
+        wait(1);
+
+
+        m3pi.stop();  
+    }
+    else if (walkType == 1) //CRAZY PATH 
+    {
+        m3pi.forward(3);
+        wait(1);
+        m3pi.forward(3);
+        wait(2);
+        m3pi.left(3.6);
+        wait(1.4);
+        m3pi.right(2.4);
+        wait(1.5);
+        m3pi.left(1.3);
+        wait(2.3); 
+        m3pi.backward(1.5);
+        wait(2.7); 
+        m3pi.stop(); 
+
+    }
+
+}
+
+void go(int walkType)
+{
+    walk(walkType);
+    if (ultrasound*5 < 10)
+        m3pi.left(0.5);
+}
+
+void playAlarm(int alarmType) //PLAYS A PARTICULAR ALARM FOR THE ROBOT 
+{
+    if (alarmType == 0) //NORMAL ALARM 
+    {
+        char* tune = "g32";
+        m3pi.playBuzzer(tune); 
+    }
+    else if (alarmType == 1) //CRAZY ALARM 
+    {
+        char* tune = "a b c d e d c b";
+        m3pi.playBuzzer(tune);
+    }
+           
+}
+
+void LEDPattern(int ledType) //DISPLAYS A PARTICULAR LED PATTERN 
+{
+
+    if (ledType == 0) //NORMAL LED PATTERN 
+    {  
+        m3pi.leds(2);
+        wait(0.1); 
+        m3pi.leds(4);
+        wait(0.1);
+        m3pi.leds(8);
+        wait(0.1);
+        m3pi.leds(16);
+        wait(0.1);
+        m3pi.leds(32);
+        wait(0.1);
+        m3pi.leds(64);
+        wait(0.1);
+        m3pi.leds(128);
+        wait(0.1);
+        m3pi.leds(256);
+        wait(0.1);  
+    }
+    else if (ledType == 1) //CRAZY LED PATTERN 
+    {
+        m3pi.leds(10);
+        wait(0.1);
+        m3pi.leds(112);
+        wait(0.01);
+        m3pi.leds(124);
+        wait(0.01);
+    }      
+    
+    
+}
+    
+
+
+void alarm(int alarmType, int pathType, int ledType)
+{
+    m3pi.printf("ALARM"); 
+    LEDPattern(ledType);
+    playAlarm(alarmType);
+    go(pathType);
+}
+
 
 
 
@@ -114,22 +222,114 @@ void LEDThread(void *args)
                     led2 = 0;
                     break;
                 case 'a':
-                    alarmType = msg->content[2]; 
+                    alarmType = (int)(msg->content[2]); 
+                    m3pi.playBuzzer("c");
                     printf("ALARM TYPE SET");
                     break;
                 case 'p':
-                    pathType = msg->content[2]; 
+                    pathType = (int)(msg->content[2]); 
+                    m3pi.playBuzzer("d");
                     printf("PATH TYPE SET"); 
                     break;
                 case 'l':
-                    LEDType = msg->content[2];
+                    LEDType = (int)(msg->content[2]);
+                    m3pi.playBuzzer("e");
                     printf("LED TYPE SET");
                     break;
                 case 't':
-                    timeDuration = msg->content[2]; 
+                    timeDuration = (int)(msg->content[2]);
+                    if (alarmType != -1 && pathType != -1 && LEDType != -1 && timeDuration != -1)
+                    {
+                        printf("ABOTTA GO OFF!");
+                        wait(0.1*timeDuration);
+                        printf("GOING OFF!");
+                        while (1)
+                        {
+                            if (alarmType == 0)
+                                m3pi.playBuzzer("c");
+                            else if (alarmType == 1)
+                                m3pi.playBuzzer("a b c d e d c b");
+                            if (LEDType == 0)
+                            {
+                                m3pi.leds(2);
+                                wait(0.1); 
+                                m3pi.leds(4);
+                                wait(0.1);
+                                m3pi.leds(8);
+                                wait(0.1);
+                                m3pi.leds(16);
+                                wait(0.1);
+                                m3pi.leds(32);
+                                wait(0.1);
+                                m3pi.leds(64);
+                                wait(0.1);
+                                m3pi.leds(128);
+                                wait(0.1);
+                                m3pi.leds(256);
+                                wait(0.1); 
+                            }
+                            else if (LEDType == 1)
+                            {
+                                m3pi.leds(10);
+                                wait(0.1);
+                                m3pi.leds(112);
+                                wait(0.01);
+                                m3pi.leds(124);
+                                wait(0.01);        
+                            }
+                            if (pathType == 0)
+                            {
+                                 m3pi.forward(0.5);
+                                wait(1);
+                                m3pi.left(1); 
+                                wait(1); 
+                                m3pi.forward(0.5);
+                                wait(1);
+
+
+                                m3pi.stop();     
+                            }
+                            else if (pathType == 1)
+                            {
+                                m3pi.forward(3);
+                                wait(1);
+                                m3pi.forward(3);
+                                wait(2);
+                                m3pi.left(3.6);
+                                wait(1.4);
+                                m3pi.right(2.4);
+                                wait(1.5);
+                                m3pi.left(1.3);
+                                wait(2.3); 
+                                m3pi.backward(1.5);
+                                wait(2.7); 
+                                m3pi.stop(); 
+                            }
+
+
+                        }
+ 
+                                               
+                    }
+
+
+                    /**
+                    if (alarmType != -1 && pathType != -1 && LEDType != -1)
+                    {
+                        printf("TIMER STARTED \n"); 
+                        printf("timeDuration: " + timeDuration);
+                        for (int i = 0; i < timeDuration; i++)
+                        {
+                            printf("ONESEC \n"); 
+                            wait(1); 
+                        }
+                        while (button.read() != -1)
+                            alarm(alarmType, pathType, LEDType);
+                    }
                     break; 
                 default:
                     printf("LEDThread: invalid message\n");
+                    **/
                     break;
 
             }            
@@ -147,22 +347,4 @@ Mail<MailMsg, LEDTHREAD_MAILBOX_SIZE> *getLEDThreadMailbox()
     return &LEDMailbox;
 }
 
-int getLEDType()
-{
-    return LEDType; 
-}
 
-int getAlarmType()
-{
-    return alarmType; 
-}
-
-int getPathType()
-{
-    return pathType;
-}
-
-int getDurationTime()
-{
-    return 1; 
-}

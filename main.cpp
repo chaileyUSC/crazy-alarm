@@ -67,8 +67,7 @@ extern "C" void mbed_reset();
 /* turn on easy-connect debug prints */
 #define EASY_CONNECT_LOGGING    true
 
-DigitalIn button(p21);
-AnalogIn ultrasound(p20);
+
 DigitalOut wifiHwResetPin(WIFI_HW_RESET_PIN);
 
 //Serial pc(USBTX, USBRX);
@@ -79,7 +78,7 @@ DigitalOut wifiHwResetPin(WIFI_HW_RESET_PIN);
  *  If you send the right sequence of UART characters to the atmega328p, it will
  *  move the robot for you. We provide a movement() function below for you to use
  */
-m3pi m3pi(p23, p9, p10);
+//m3pi m3pi(p23, p9, p10);
 
 /* MQTTClient and TCPSocket (underneath MQTTNetwork) may not be thread safe. 
  * Lock this global mutex before any calls to publish(). 
@@ -104,6 +103,8 @@ static char *topic = "anrg-pi4/robot";
  *
  * @return     { void }
  */
+
+/**
 void movement(char command, char speed, int delta_t)
 {
     if (command == 's')
@@ -131,6 +132,7 @@ void movement(char command, char speed, int delta_t)
         m3pi.stop();
     }
 }
+**/
 
 /* Callback for any received MQTT messages */
 void messageArrived(MQTT::MessageData& md)
@@ -196,109 +198,6 @@ void messageArrived(MQTT::MessageData& md)
 
 
 
-void walk(int walkType) //MAKES THE ROBOT WALK IN ITS DESIRED PATH
-{
-    if (walkType == 0) //NORMAL PATH 
-    {
-        m3pi.forward(0.5);
-        wait(1);
-        m3pi.left(1); 
-        wait(1); 
-        m3pi.forward(0.5);
-        wait(1);
-
-
-        m3pi.stop();  
-    }
-    else if (walkType == 1) //CRAZY PATH 
-    {
-        m3pi.forward(3);
-        wait(1);
-        m3pi.forward(3);
-        wait(2);
-        m3pi.left(3.6);
-        wait(1.4);
-        m3pi.right(2.4);
-        wait(1.5);
-        m3pi.left(1.3);
-        wait(2.3); 
-        m3pi.backward(1.5);
-        wait(2.7); 
-        m3pi.stop(); 
-
-    }
-
-}
-
-void go(int walkType)
-{
-    walk(walkType);
-    if (ultrasound*5 < 10)
-        m3pi.left(0.5);
-}
-
-void playAlarm(int alarmType) //PLAYS A PARTICULAR ALARM FOR THE ROBOT 
-{
-    if (alarmType == 0) //NORMAL ALARM 
-    {
-        char* tune = "c32 >c32";
-        m3pi.playBuzzer(tune); 
-    }
-    else if (alarmType == 1) //CRAZY ALARM 
-    {
-        char* tune = "a b c d e d c b";
-        m3pi.playBuzzer(tune);
-    }
-           
-}
-
-void LEDPattern(int ledType) //DISPLAYS A PARTICULAR LED PATTERN 
-{
-
-    if (ledType == 0) //NORMAL LED PATTERN 
-    {  
-        m3pi.leds(2);
-        wait(0.1); 
-        m3pi.leds(4);
-        wait(0.1);
-        m3pi.leds(8);
-        wait(0.1);
-        m3pi.leds(16);
-        wait(0.1);
-        m3pi.leds(32);
-        wait(0.1);
-        m3pi.leds(64);
-        wait(0.1);
-        m3pi.leds(128);
-        wait(0.1);
-        m3pi.leds(256);
-        wait(0.1);  
-    }
-    else if (ledType == 1) //CRAZY LED PATTERN 
-    {
-        m3pi.leds(10);
-        wait(0.1);
-        m3pi.leds(112);
-        wait(0.01);
-        m3pi.leds(124);
-        wait(0.01);
-    }      
-    
-    
-}
-    
-
-
-void alarm(int alarmType, int pathType, int ledType)
-{
-    m3pi.printf("ALARM"); 
-    LEDPattern(ledType);
-    playAlarm(alarmType);
-    go(pathType);
-}
-
-
-
 
 
 int main()
@@ -308,8 +207,6 @@ int main()
        at a speed of 25 (speed can be between -127 to 127) for 100 ms. Use
        functions like this in your program to move your m3pi when you get 
        MQTT messages! */
-     movement('w', 25, 100);
-
 
     wait(1); //delay startup 
     printf("Resetting ESP8266 Hardware...\n");
